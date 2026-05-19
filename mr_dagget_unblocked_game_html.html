@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dagget Ball Chaos</title>
+<style>
+  body {
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-family: Arial, sans-serif;
+    background: radial-gradient(circle at top, #4facfe, #141414 70%);
+    text-align: center;
+    color: white;
+    min-height: 100vh;
+  }
+
+  h1 {
+    margin-top: 15px;
+    font-size: 58px;
+    text-shadow: 0 0 20px cyan;
+    letter-spacing: 2px;
+  }
+
+  #score {
+    font-size: 40px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 15px yellow;
+  }
+
+  #message {
+    font-size: 30px;
+    height: 40px;
+    color: #ffdd57;
+    font-weight: bold;
+    text-shadow: 0 0 12px orange;
+  }
+
+  #gameArea {
+    position: relative;
+    width: 100vw;
+    height: 1600px;
+    overflow: hidden;
+  }
+
+  #daggetContainer {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    left: 300px;
+    top: 300px;
+    filter: drop-shadow(0 0 25px rgba(255,255,255,0.5));
+    z-index: 10;
+  }
+
+  #dagget {
+    position: absolute;
+    z-index: 5;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.08s;
+    border: 6px solid white;
+    box-shadow: 0 0 30px cyan;
+    background: white;
+  }
+
+  #dagget:active {
+    transform: scale(1.15);
+  }
+
+  .upgrade {
+    margin: 8px;
+    padding: 14px 22px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #111, #333);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 0 18px rgba(0,0,0,0.5);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .item {
+    position: absolute;
+    display: none;
+    font-size: 52px;
+    pointer-events: none;
+    filter: drop-shadow(0 0 10px white);
+  }
+    pointer-events: none;
+  }
+
+  #hat { top: -25px; left: 45px; }
+  #jersey { top: 95px; left: 60px; }
+  #speedo { top: 105px; left: 62px; }
+  #hair { top: -10px; left: 40px; }
+  #mustache { top: 55px; left: 60px; }
+  #sunglasses { top: 40px; left: 40px; }
+
+  .upgrade:hover {
+    background: linear-gradient(135deg, #00c6ff, #0072ff);
+    transform: scale(1.06);
+    box-shadow: 0 0 25px cyan;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔥 DAGGET BALL CHAOS 🔥</h1>
+<div id="score">Dagget Points: 0</div>
+<div id="message"></div>
+
+<button class="upgrade" onclick="buyMultiplier()">Buy Turbo Dagget (+1 Dagget Point per click) - Cost: 25</button>
+<button class="upgrade" onclick="buyChaos()">Unlock MEGA CHAOS - Cost: 100</button>
+
+<div id="gameArea">
+  <div id="daggetContainer">
+    <img id="dagget" src="small_737934c3-2bf7-4939-b9fa-6556ff3124c8.png">
+    <div id="hat" class="item">🎩</div>
+    <div id="jersey" class="item">🏀</div>
+    <div id="speedo" class="item">🩲</div>
+    <div id="hair" class="item">💇</div>
+    <div id="mustache" class="item">👨</div>
+    <div id="sunglasses" class="item">🕶️</div>
+  </div>
+</div>
+
+<audio id="boing">
+  <source src="https://www.soundjay.com/button/sounds/button-16.mp3" type="audio/mpeg">
+</audio>
+
+<script>
+const dagget = document.getElementById('dagget');
+const scoreText = document.getElementById('score');
+const message = document.getElementById('message');
+const boing = document.getElementById('boing');
+
+let score = 0;
+let multiplier = 1;
+let speedX = 6;
+let speedY = 5;
+let posX = 300;
+let posY = 200;
+let chaosMode = false;
+let unlockedUpgrades = 3;
+
+const outfits = [
+  'none',
+  'hat',
+  'jersey',
+  'speedo',
+  'hair',
+  'gold',
+  'sunglasses',
+  'mustache'
+];
+
+let currentOutfit = 0;
+
+const funnyMessages = [
+  'THE DAGGET EMPIRE GROWS.',
+  'BONK.',
+  'HE HAS BECOME TOO POWERFUL.',
+  'GOLDEN DAGGET SPAWNED.',
+  'MAXIMUM BOUNCE ACHIEVED.',
+  'SPEEDO DAGGET ACTIVATED.',
+  'THE MUSTACHE INCREASES POWER.',
+  'HIS FOREHEAD IS EVOLVING.',
+  'BALL MODE SUPREME.',
+  'DAGGET POINTS GO BRRR.',
+  'THE SPIN CANNOT BE STOPPED.',
+  'SUPER DAGGET FORM.',
+  'HAT POWER ACTIVATED.',
+  'ULTIMATE DAGGET LIFEFORM.'
+];
+
+const upgradeList = [
+  {name:'Tiny Hat', cost:12, effect:()=>currentOutfit=1},
+  {name:'Basketball Jersey', cost:25, effect:()=>currentOutfit=2},
+  {name:'Turbo Hair', cost:41, effect:()=>currentOutfit=4},
+  {name:'Golden Dagget', cost:67, effect:()=>currentOutfit=5},
+  {name:'SPEEDO MODE', cost:69, effect:()=>currentOutfit=3},
+  {name:'Spin Upgrade', cost:88, effect:()=>{speedX*=1.2; speedY*=1.2;}},
+  {name:'Mega Bounce', cost:111, effect:()=>{multiplier+=2;}},
+  {name:'Mustache Dagget', cost:123, effect:()=>currentOutfit=7},
+  {name:'Sunglasses Dagget', cost:150, effect:()=>currentOutfit=6},
+  {name:'Hyper Chaos', cost:177, effect:()=>chaosMode=true},
+  {name:'Double Dagget', cost:222, effect:()=>{multiplier+=5;}},
+  {name:'Nuclear Bounce', cost:256, effect:()=>{speedX*=1.5; speedY*=1.5;}},
+  {name:'Ultra Clicker', cost:300, effect:()=>{multiplier+=10;}},
+  {name:'Banana Dagget', cost:333, effect:()=>document.body.style.filter='hue-rotate(90deg)'},
+  {name:'Galaxy Dagget', cost:420, effect:()=>document.body.style.background='black'},
+  {name:'Infinite Forehead', cost:500, effect:()=>dagget.style.width='220px'},
+  {name:'Unstoppable Spin', cost:666, effect:()=>setInterval(()=>{dagget.style.transform=`rotate(${Math.random()*360}deg)`},100)},
+  {name:'THE FINAL DAGGET', cost:777, effect:()=>{multiplier+=50;}},
+  {name:'Reality Collapse', cost:999, effect:()=>setInterval(()=>{document.body.style.transform=`rotate(${Math.random()*4-2}deg)`},50)},
+  {name:'Dagget God Mode', cost:1337, effect:()=>{multiplier+=100; speedX*=2; speedY*=2;}}
+];
+
+function randomMessage() {
+  const text = funnyMessages[Math.floor(Math.random() * funnyMessages.length)];
+  message.textContent = text;
+
+  setTimeout(() => {
+    message.textContent = '';
+  }, 1200);
+}
+
+function updateScore() {
+  scoreText.textContent = 'Dagget Points: ' + score;
+}
+
+function drawOutfit() {
+  document.querySelectorAll('.item').forEach(el => {
+    el.style.display = 'none';
+  });
+
+  dagget.style.filter = 'none';
+
+  if(currentOutfit===1) document.getElementById('hat').style.display='block';
+  if(currentOutfit===2) document.getElementById('jersey').style.display='block';
+  if(currentOutfit===3) document.getElementById('speedo').style.display='block';
+  if(currentOutfit===4) document.getElementById('hair').style.display='block';
+
+  if(currentOutfit===5){
+    dagget.style.filter='sepia(1) saturate(6) hue-rotate(10deg)';
+  }
+
+  if(currentOutfit===6) document.getElementById('sunglasses').style.display='block';
+  if(currentOutfit===7) document.getElementById('mustache').style.display='block';
+}
+}
+
+function moveDagget() {
+  const maxX = window.innerWidth - 220;
+  const maxY = 1350;
+
+  posX += speedX;
+  posY += speedY;
+
+  if (posX <= 0 || posX >= maxX) {
+    speedX *= -1;
+  }
+
+  if (posY <= 0 || posY >= maxY) {
+    speedY *= -1;
+  }
+
+  const container = document.getElementById('daggetContainer');
+
+  container.style.left = posX + 'px';
+  container.style.top = posY + 'px';
+
+  drawOutfit();
+
+  requestAnimationFrame(moveDagget);
+}
+
+function explosionText(x, y, text) {
+  const popup = document.createElement('div');
+  popup.innerText = text;
+  popup.style.position = 'absolute';
+  popup.style.left = x + 'px';
+  popup.style.top = y + 'px';
+  popup.style.fontSize = '40px';
+  popup.style.fontWeight = 'bold';
+  popup.style.color = 'cyan';
+  popup.style.pointerEvents = 'none';
+  popup.style.transition = 'all 0.7s linear';
+
+  document.body.appendChild(popup);
+
+  setTimeout(() => {
+    popup.style.top = (y - 80) + 'px';
+    popup.style.opacity = '0';
+  }, 10);
+
+  setTimeout(() => {
+    popup.remove();
+  }, 700);
+}
+
+function clickDagget(e) {
+  score += multiplier;
+  updateScore();
+
+  boing.currentTime = 0;
+  boing.play();
+
+  randomMessage();
+
+  document.body.style.background = `radial-gradient(circle at top, hsl(${Math.random()*360},80%,60%), #111 70%)`;
+
+  explosionText(e.pageX, e.pageY, '+' + multiplier);
+
+  dagget.style.transform = 'rotate(' + (Math.random() * 60 - 30) + 'deg) scale(1.2)';
+
+  setTimeout(() => {
+    dagget.style.transform = 'rotate(0deg) scale(1)';
+  }, 120);
+
+  if (chaosMode) {
+    document.body.style.background = `hsl(${Math.random()*360}, 80%, 80%)`;
+  }
+}
+
+function renderUpgrades() {
+  document.querySelectorAll('.dynamicUpgrade').forEach(btn => btn.remove());
+
+  for(let i=0;i<unlockedUpgrades;i++) {
+    if(!upgradeList[i]) continue;
+
+    const upgrade = upgradeList[i];
+
+    const btn = document.createElement('button');
+    btn.className = 'upgrade dynamicUpgrade';
+    btn.innerText = `${upgrade.name} - Cost: ${upgrade.cost}`;
+
+    btn.onclick = () => buyUpgrade(i);
+
+    if(bought[i]) {
+      btn.remove();
+      continue;
+    }
+
+    document.getElementById('message').after(btn);
+  }
+}
+
+const bought = [];
+
+function buyUpgrade(index) {
+  const upgrade = upgradeList[index];
+
+  if(score >= upgrade.cost && !bought[index]) {
+    score -= upgrade.cost;
+    bought[index] = true;
+    upgrade.effect();
+
+    currentOutfit = index % outfits.length;
+
+    if(index===0) multiplier += 1;
+    if(index===1) multiplier += 2;
+    if(index===2) multiplier += 3;
+    if(index===3) multiplier += 5;
+    if(index===4) multiplier += 7;
+    if(index===7) multiplier += 10;
+    if(index===8) multiplier += 15;
+    drawOutfit();
+
+    updateScore();
+
+    randomMessage();
+
+    unlockedUpgrades++;
+    renderUpgrades();
+  }
+}
+
+dagget.addEventListener('click', clickDagget);
+
+updateScore();
+renderUpgrades();
+moveDagget();
+</script>
+
+</body>
+</html>
